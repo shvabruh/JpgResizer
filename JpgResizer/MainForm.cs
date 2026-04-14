@@ -5,41 +5,64 @@ namespace JpgResizer
 {
     public partial class Form1 : Form
     {
-        private readonly HttpClient _httpClient = new HttpClient();
-        private readonly string _uploadUrl = "http://localhost/postupload.php";
-        private Bitmap _originalImage;
+        private readonly HttpClient _httpClient = new();
+        private readonly string _uploadUrl = "http://localhost/dashboard/Kursovaya_scripts/postupload.php";
+        private readonly string _historyUrl = "http://localhost/dashboard/Kursovaya_scripts/gethistory.php";
+        private readonly string _getUploadUrl = "http://localhost/dashboard/Kursovaya_scripts/getuploads.php";
+        private Bitmap? _originalImage;
+        private Button btnHistory = null!;
 
         public Form1()
         {
             InitializeComponent();
             btnSelectFile.Click += BtnSelectFile_Click;
             btnUpload.Click += BtnUpload_Click;
-            this.FormClosed += Form1_FormClosed;
+            btnHistory.Click += BtnHistory_Click;
+
+            btnHistory = new Button
+            {
+                Text = "История",
+                Location = new Point(14, 380),
+                Size = new Size(100, 30),
+                TabIndex = 7
+            };
+            btnHistory.Click += BtnHistory_Click;
+            Controls.Add(btnHistory);
+            FormClosed += Form1_FormClosed;
         }
 
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        private void Form1_FormClosed(object? sender, FormClosedEventArgs e)
         {
             _originalImage?.Dispose();
-            _httpClient?.Dispose();
+            _httpClient.Dispose();
         }
 
-        private void BtnSelectFile_Click(object sender, EventArgs e)
+        private void BtnSelectFile_Click(object? sender, EventArgs e)
         {
-            using OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg";
-            ofd.Title = "Выберите JPG изображение";
+            using OpenFileDialog ofd = new()
+            {
+                Filter = "JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg",
+                Title = "Выберите JPG изображение"
+            };
             if (ofd.ShowDialog() == DialogResult.OK)
             {
+                string ext = Path.GetExtension(ofd.FileName).ToLower();
+                if (ext != ".jpg" && ext != ".jpeg")
+                {
+                    MessageBox.Show("Выберите файл формата JPG или JPEG.", "Ошибка",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 txtFilePath.Text = ofd.FileName;
                 try
                 {
-                    using (var fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read))
-                    {
-                        var img = Image.FromStream(fs);
-                        _originalImage = new Bitmap(img);
-                        picPreview.Image = _originalImage;
-                        lblOriginalSize.Text = $"Размеры: {_originalImage.Width} x {_originalImage.Height}";
-                    }
+                    using var fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read);
+                    var img = Image.FromStream(fs);
+                    _originalImage?.Dispose();
+                    _originalImage = new Bitmap(img);
+                    picPreview.Image = _originalImage;
+                    lblOriginalSize.Text = $"Размеры: {_originalImage.Width} x {_originalImage.Height}";
                 }
                 catch (Exception ex)
                 {
@@ -52,10 +75,8 @@ namespace JpgResizer
             }
         }
 
-        // Загрузка файла на сервер
-        private async void BtnUpload_Click(object sender, EventArgs e)
+        private async void BtnUpload_Click(object? sender, EventArgs e)
         {
-            // Проверки
             if (string.IsNullOrEmpty(txtFilePath.Text))
             {
                 statusLabel.Text = "Ошибка: файл не выбран";
@@ -75,7 +96,6 @@ namespace JpgResizer
                 return;
             }
 
-            // Блокировка UI
             btnSelectFile.Enabled = false;
             btnUpload.Enabled = false;
             statusLabel.Text = "Загрузка...";
@@ -83,59 +103,65 @@ namespace JpgResizer
             try
             {
                 using var content = new MultipartFormDataContent();
-
-                // Добавление файла
                 byte[] fileBytes = File.ReadAllBytes(txtFilePath.Text);
                 var fileContent = new ByteArrayContent(fileBytes);
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
                 content.Add(fileContent, "image", Path.GetFileName(txtFilePath.Text));
-
-                // Добавление параметра ширины
                 content.Add(new StringContent(nudTargetWidth.Value.ToString(), Encoding.UTF8), "width");
 
-                // Отправка POST-запроса
                 HttpResponseMessage response = await _httpClient.PostAsync(_uploadUrl, content);
                 string responseBody = await response.Content.ReadAsStringAsync();
 
+                statusLabel.Text = $"Код: {response.StatusCode}";
+
                 if (response.IsSuccessStatusCode)
                 {
-                    using JsonDocument doc = JsonDocument.Parse(responseBody);
-                    JsonElement root = doc.RootElement;
-                    bool success = root.GetProperty("success").GetBoolean();
+                    try
+                    {
+                        using JsonDocument doc = JsonDocument.Parse(responseBody);
+                        JsonElement root = doc.RootElement;
+                        bool success = root.GetProperty("success").GetBoolean();
 
-                    if (success)
-                    {
-                        string fileName = root.GetProperty("fileName").GetString();
-                        statusLabel.Text = $"Файл сохранён как {fileName}";
-                        MessageBox.Show($"Изображение успешно загружено\nСохранённое имя: {fileName}", "Готово",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        // доделать (шаг 3)
-                    }
-                    else
-                    {
-                        string error = root.GetProperty("error").GetString();
-                        statusLabel.Text = $"Ошибка: {error}";
-                        MessageBox.Show($"Сервер вернул ошибку:\n{error}", "Ошибка загрузки",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                        if (success)
+                        {
+                            string fileName = root.GetProperty("fileName").GetString()!;
+                            statusLabel.Text = $"Файл сохранён как {fileName}";
+                            MessageBox.Show($"Изображение успешно загружено\nСохранённое имя: {fileName}", "Готово",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        else
+                        {
+                            string error = root.GetProperty("error").GetString()!;
+                            statusLabel.Text = $"Ошибка: {error}";
+                            MessageBox.Show($"Сервер вернул ошибку:\n{error}", "Ошибка загрузки",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
 
-                    if (root.TryGetProperty("warning", out JsonElement warning))
+                        if (root.TryGetProperty("warning", out JsonElement warning))
+                        {
+                            statusLabel.Text = $"Предупреждение: {warning.GetString()}";
+                            MessageBox.Show(warning.GetString(), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    catch (JsonException jsonEx)
                     {
-                        statusLabel.Text = $"Предупреждение: {warning.GetString()}";
-                        MessageBox.Show(warning.GetString(), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        string preview = responseBody.Length > 500 ? responseBody.Substring(0, 500) : responseBody;
+                        MessageBox.Show($"Сервер вернул не JSON, а:\n{preview}\n\nОшибка: {jsonEx.Message}",
+                            "Ошибка формата ответа", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        statusLabel.Text = "Ошибка: сервер вернул не JSON";
                     }
                 }
                 else
                 {
-                    statusLabel.Text = $"HTTP ошибка: {response.StatusCode}";
-                    MessageBox.Show($"Сервер ответил кодом {response.StatusCode}\n{responseBody}", "Ошибка HTTP",
+                    string preview = responseBody.Length > 500 ? responseBody.Substring(0, 500) : responseBody;
+                    MessageBox.Show($"HTTP {response.StatusCode}\n{preview}", "Ошибка сервера",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (HttpRequestException ex)
             {
                 statusLabel.Text = "Ошибка сети";
-                MessageBox.Show($"Не удалось соединиться с сервером:\n{ex.Message}\n\nПроверьте, что сервер запущен (XAMPP) и postupload.php доступен по адресу {_uploadUrl}",
+                MessageBox.Show($"Не удалось соединиться с сервером:\n{ex.Message}\n\nПроверьте, что сервер запущен и URL верен:\n{_uploadUrl}",
                     "Ошибка сети", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
@@ -150,5 +176,17 @@ namespace JpgResizer
                 if (statusLabel.Text == "Загрузка...") statusLabel.Text = "Готово";
             }
         }
+
+        private void BtnHistory_Click(object? sender, EventArgs e)
+        {
+            HistoryForm historyForm = new(_historyUrl, _getUploadUrl);
+            historyForm.ShowDialog(this);
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
     }
 }

@@ -23,6 +23,7 @@
             nudTargetWidth = new NumericUpDown();
             btnUpload = new Button();
             statusStrip = new StatusStrip();
+            btnHistory = new Button();
             statusLabel = new ToolStripStatusLabel();
             ((System.ComponentModel.ISupportInitialize)picPreview).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudTargetWidth).BeginInit();
@@ -31,16 +32,18 @@
             // 
             // btnSelectFile
             // 
+            btnSelectFile.BackColor = Color.MediumPurple;
             btnSelectFile.Location = new Point(14, 24);
             btnSelectFile.Margin = new Padding(3, 4, 3, 4);
             btnSelectFile.Name = "btnSelectFile";
             btnSelectFile.Size = new Size(117, 27);
             btnSelectFile.TabIndex = 0;
             btnSelectFile.Text = "Выбрать файл...";
-            btnSelectFile.UseVisualStyleBackColor = true;
+            btnSelectFile.UseVisualStyleBackColor = false;
             // 
             // txtFilePath
             // 
+            txtFilePath.BackColor = Color.Lavender;
             txtFilePath.Location = new Point(137, 24);
             txtFilePath.Margin = new Padding(3, 4, 3, 4);
             txtFilePath.Name = "txtFilePath";
@@ -50,6 +53,7 @@
             // 
             // picPreview
             // 
+            picPreview.BackColor = Color.Lavender;
             picPreview.BorderStyle = BorderStyle.FixedSingle;
             picPreview.Location = new Point(14, 67);
             picPreview.Margin = new Padding(3, 4, 3, 4);
@@ -79,6 +83,8 @@
             // 
             // nudTargetWidth
             // 
+            nudTargetWidth.BackColor = Color.Lavender;
+            nudTargetWidth.ForeColor = SystemColors.MenuText;
             nudTargetWidth.Location = new Point(238, 345);
             nudTargetWidth.Margin = new Padding(3, 4, 3, 4);
             nudTargetWidth.Maximum = new decimal(new int[] { 10000, 0, 0, 0 });
@@ -90,24 +96,35 @@
             // 
             // btnUpload
             // 
+            btnUpload.BackColor = Color.MediumPurple;
             btnUpload.Location = new Point(335, 344);
             btnUpload.Margin = new Padding(3, 4, 3, 4);
             btnUpload.Name = "btnUpload";
             btnUpload.Size = new Size(145, 27);
             btnUpload.TabIndex = 6;
             btnUpload.Text = "Загрузить";
-            btnUpload.UseVisualStyleBackColor = true;
+            btnUpload.UseVisualStyleBackColor = false;
             // 
             // statusStrip
             // 
             statusStrip.ImageScalingSize = new Size(20, 20);
             statusStrip.Items.AddRange(new ToolStripItem[] { statusLabel });
-            statusStrip.Location = new Point(0, 403);
+            statusStrip.Location = new Point(0, 438);
             statusStrip.Name = "statusStrip";
             statusStrip.Padding = new Padding(1, 0, 16, 0);
-            statusStrip.Size = new Size(533, 26);
+            statusStrip.Size = new Size(568, 26);
             statusStrip.TabIndex = 7;
             statusStrip.Text = "statusStrip";
+            // 
+            // btnHistory
+            // 
+            btnHistory.BackColor = Color.Pink;
+            btnHistory.Location = new Point(14, 380);
+            btnHistory.Name = "btnHistory";
+            btnHistory.Size = new Size(100, 30);
+            btnHistory.TabIndex = 8;
+            btnHistory.Text = "История";
+            btnHistory.UseVisualStyleBackColor = false;
             // 
             // statusLabel
             // 
@@ -119,7 +136,9 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(533, 429);
+            BackColor = SystemColors.MenuBar;
+            ClientSize = new Size(568, 464);
+            Controls.Add(btnHistory);
             Controls.Add(statusStrip);
             Controls.Add(btnUpload);
             Controls.Add(nudTargetWidth);
@@ -132,6 +151,7 @@
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "JPEG Resizer Client";
+            Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)picPreview).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudTargetWidth).EndInit();
             statusStrip.ResumeLayout(false);
@@ -148,6 +168,7 @@
         private System.Windows.Forms.NumericUpDown nudTargetWidth;
         private System.Windows.Forms.Button btnUpload;
         private System.Windows.Forms.StatusStrip statusStrip;
-        private System.Windows.Forms.ToolStripStatusLabel statusLabel;
+        private System.Windows.Forms.Button btnHistory;
+        private ToolStripStatusLabel statusLabel;
     }
 }
