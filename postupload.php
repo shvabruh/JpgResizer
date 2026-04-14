@@ -7,172 +7,161 @@ $uploadDir = 'uploads/';
 $maxFileSize = 10 * 1024 * 1024; // 10 МБ
 $allowedType = IMAGETYPE_JPEG;
 
-// Создание папки для загрузок, если её нет
-if (!is_dir($uploadDir)) {
-    if (!mkdir($uploadDir, 0777, true)) {
+if (!is_dir($uploadDir)) 
+{
+    if (!mkdir($uploadDir, 0777, true)) 
+    {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'Не удалось создать папку для загрузок']);
         exit;
     }
 }
 
-// Проверка наличия файла
-if (!isset($_FILES['image'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Файл не передан']);
-    exit;
+function logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP) 
+{
+    $conn = getDbConnection();
+    if (!$conn) return false;
+    $stmt = $conn->prepare("
+        INSERT INTO history 
+        (originalName, uploadTime, targetSize, status, errorMessage, clientIP)
+        VALUES (?, NOW(), ?, 'error', ?, ?)
+    ");
+    if (!$stmt) 
+    {
+        $conn->close();
+        return false;
+    }
+    
+    $stmt->bind_param("siss", $originalName, $targetWidth, $errorMsg, $clientIP);
+    $success = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+    return $success;
 }
 
-$file = $_FILES['image'];
-if ($file['error'] !== UPLOAD_ERR_OK) {
-    $uploadErrors = [
-        UPLOAD_ERR_INI_SIZE   => 'Файл превышает размер, заданный в php.ini',
-        UPLOAD_ERR_FORM_SIZE  => 'Файл превышает размер, заданный в HTML-форме',
-        UPLOAD_ERR_PARTIAL    => 'Файл загружен частично',
-        UPLOAD_ERR_NO_FILE    => 'Файл не загружен',
-        UPLOAD_ERR_NO_TMP_DIR => 'Отсутствует временная папка',
-        UPLOAD_ERR_CANT_WRITE => 'Не удалось записать файл на диск',
-        UPLOAD_ERR_EXTENSION  => 'Загрузка остановлена расширением PHP',
-    ];
-    $errorMsg = $uploadErrors[$file['error']] ?? 'Неизвестная ошибка загрузки';
+$clientIP = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$originalName = isset($_FILES['image']['name']) ? basename($_FILES['image']['name']) : 'unknown.jpg';
+$targetWidth = isset($_POST['width']) ? (int)$_POST['width'] : 0;
+
+if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) 
+{
+    $errorMsg = 'Файл не передан или ошибка загрузки';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-// Проверка размера файла
-if ($file['size'] > $maxFileSize) {
+$file = $_FILES['image'];
+
+if ($file['size'] > $maxFileSize) 
+{
+    $errorMsg = 'Файл превышает допустимый размер (10 МБ)';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Файл превышает допустимый размер (10 МБ)']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-// Проверка типа файла (только JPEG)
 $imageType = exif_imagetype($file['tmp_name']);
-if ($imageType !== $allowedType) {
+if ($imageType !== $allowedType) 
+{
+    $errorMsg = 'Допустимы только изображения в формате JPG/JPEG';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Допустимы только изображения в формате JPG/JPEG']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-// Получение исходных размеров
 list($origW, $origH) = getimagesize($file['tmp_name']);
-
-// Проверка целевой ширины
-$userW = isset($_POST['width']) ? (int)$_POST['width'] : 0;
-if ($userW <= 0) {
+if ($targetWidth <= 0) 
+{
+    $errorMsg = 'Целевая ширина должна быть положительным числом';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Целевая ширина должна быть положительным числом']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
-if ($origW < $userW) {
+if ($origW < $targetWidth) 
+{
+    $errorMsg = 'Исходное изображение уже меньше заданной ширины';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Исходное изображение уже меньше заданной ширины']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-// Вычисление новых размеров с сохранением пропорций
 $ratio = $origH / $origW;
-$finalW = $userW;
+$finalW = $targetWidth;
 $finalH = round($finalW * $ratio);
 
-// Ресайз изображения
 $src = imagecreatefromjpeg($file['tmp_name']);
-if (!$src) {
+if (!$src) 
+{
+    $errorMsg = 'Не удалось загрузить изображение для обработки';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Не удалось загрузить изображение для обработки']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
 $dst = imagecreatetruecolor($finalW, $finalH);
-if (!$dst) {
+if (!$dst) 
+{
     imagedestroy($src);
+    $errorMsg = 'Не удалось создать целевое изображение';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Не удалось создать целевое изображение']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-if (!imagecopyresampled($dst, $src, 0, 0, 0, 0, $finalW, $finalH, $origW, $origH)) {
+if (!imagecopyresampled($dst, $src, 0, 0, 0, 0, $finalW, $finalH, $origW, $origH)) 
+{
     imagedestroy($src);
     imagedestroy($dst);
+    $errorMsg = 'Ошибка при изменении размера изображения';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Ошибка при изменении размера изображения']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-// Генерация уникального имени
-$originalName = basename($file['name']);
 $pathInfo = pathinfo($originalName);
 $storedName = $pathInfo['filename'] . '_' . time() . '.jpg';
-
-// Сохранение на диск
 $targetPath = $uploadDir . $storedName;
-if (!imagejpeg($dst, $targetPath, 90)) {
+
+if (!imagejpeg($dst, $targetPath, 90)) 
+{
     imagedestroy($src);
     imagedestroy($dst);
+    $errorMsg = 'Не удалось сохранить обработанное изображение';
+    logErrorToDB($originalName, $targetWidth, $errorMsg, $clientIP);
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Не удалось сохранить обработанное изображение']);
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
-// Освобождение ресурсов GD
 imagedestroy($src);
 imagedestroy($dst);
 
-// Запись в БД
-$clientIP = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $status = 'success';
 $errorMessage = null;
-
 $conn = getDbConnection();
-if (!$conn) {
-    // БД недоступна – возвращаем успех с предупреждением
-    echo json_encode([
-        'success' => true,
-        'fileName' => $storedName,
-        'warning' => 'Файл сохранён, но база данных недоступна'
-    ]);
-    exit;
-}
-
-$stmt = $conn->prepare("
-    INSERT INTO history 
-    (originalName, storedName, uploadTime, originalWidth, originalHeight, targetSize, finalWidth, finalHeight, status, errorMessage, clientIP)
-    VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)
-");
-if (!$stmt) {
+if ($conn) 
+{
+    $stmt = $conn->prepare("
+        INSERT INTO history 
+        (originalName, storedName, uploadTime, originalWidth, originalHeight, targetSize, finalWidth, finalHeight, status, errorMessage, clientIP)
+        VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    if ($stmt) 
+    {
+        $stmt->bind_param("ssiiiiisss", $originalName, $storedName, $origW, $origH, $targetWidth, $finalW, $finalH, $status, $errorMessage, $clientIP);
+        $stmt->execute();
+        $stmt->close();
+    }
     $conn->close();
-    echo json_encode([
-        'success' => true,
-        'fileName' => $storedName,
-        'warning' => 'Файл сохранён, но не удалось записать историю (ошибка подготовки запроса)'
-    ]);
-    exit;
 }
 
-$stmt->bind_param(
-    "ssiiiiisss",
-    $originalName,
-    $storedName,
-    $origW,
-    $origH,
-    $userW,
-    $finalW,
-    $finalH,
-    $status,
-    $errorMessage,
-    $clientIP
-);
-
-if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'fileName' => $storedName]);
-} else {
-    echo json_encode([
-        'success' => true,
-        'fileName' => $storedName,
-        'warning' => 'Файл сохранён, но не удалось записать историю (ошибка выполнения запроса)'
-    ]);
-}
-
-$stmt->close();
-$conn->close();
+echo json_encode(['success' => true, 'fileName' => $storedName]);
