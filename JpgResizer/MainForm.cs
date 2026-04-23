@@ -9,8 +9,8 @@ namespace JpgResizer
         private readonly string _uploadUrl = "http://localhost/dashboard/Kursovaya_scripts/postupload.php";
         private readonly string _historyUrl = "http://localhost/dashboard/Kursovaya_scripts/gethistory.php";
         private readonly string _getUploadUrl = "http://localhost/dashboard/Kursovaya_scripts/getuploads.php";
+        private readonly string _webHistoryUrl = "http://localhost/dashboard/Kursovaya_scripts/history_view.php";
         private Bitmap? _originalImage;
-        private Button btnHistory = null!;
 
         public Form1()
         {
@@ -18,16 +18,7 @@ namespace JpgResizer
             btnSelectFile.Click += BtnSelectFile_Click;
             btnUpload.Click += BtnUpload_Click;
             btnHistory.Click += BtnHistory_Click;
-
-            btnHistory = new Button
-            {
-                Text = "История",
-                Location = new Point(14, 380),
-                Size = new Size(100, 30),
-                TabIndex = 7
-            };
-            btnHistory.Click += BtnHistory_Click;
-            Controls.Add(btnHistory);
+            btnWebHistory.Click += BtnWebHistory_Click;
             FormClosed += Form1_FormClosed;
         }
 
@@ -128,6 +119,17 @@ namespace JpgResizer
                             statusLabel.Text = $"Файл сохранён как {fileName}";
                             MessageBox.Show($"Изображение успешно загружено\nСохранённое имя: {fileName}", "Готово",
                                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                            // Предложение открыть историю
+                            DialogResult openHistory = MessageBox.Show(
+                                "Открыть историю загрузок?",
+                                "История",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Question);
+                            if (openHistory == DialogResult.Yes)
+                            {
+                                BtnHistory_Click(sender, e);
+                            }
                         }
                         else
                         {
@@ -183,10 +185,21 @@ namespace JpgResizer
             historyForm.ShowDialog(this);
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void BtnWebHistory_Click(object? sender, EventArgs e)
         {
-
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = _webHistoryUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Не удалось открыть браузер: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
-
     }
 }

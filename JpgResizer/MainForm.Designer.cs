@@ -23,8 +23,9 @@
             nudTargetWidth = new NumericUpDown();
             btnUpload = new Button();
             statusStrip = new StatusStrip();
-            btnHistory = new Button();
             statusLabel = new ToolStripStatusLabel();
+            btnHistory = new Button();
+            btnWebHistory = new Button();
             ((System.ComponentModel.ISupportInitialize)picPreview).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudTargetWidth).BeginInit();
             statusStrip.SuspendLayout();
@@ -116,6 +117,12 @@
             statusStrip.TabIndex = 7;
             statusStrip.Text = "statusStrip";
             // 
+            // statusLabel
+            // 
+            statusLabel.Name = "statusLabel";
+            statusLabel.Size = new Size(57, 20);
+            statusLabel.Text = "Готово";
+            // 
             // btnHistory
             // 
             btnHistory.BackColor = Color.Pink;
@@ -123,14 +130,18 @@
             btnHistory.Name = "btnHistory";
             btnHistory.Size = new Size(100, 30);
             btnHistory.TabIndex = 8;
-            btnHistory.Text = "История";
+            btnHistory.Text = "История (C#)";
             btnHistory.UseVisualStyleBackColor = false;
             // 
-            // statusLabel
+            // btnWebHistory
             // 
-            statusLabel.Name = "statusLabel";
-            statusLabel.Size = new Size(57, 20);
-            statusLabel.Text = "Готово";
+            btnWebHistory.BackColor = Color.PaleVioletRed;
+            btnWebHistory.Location = new Point(120, 380);
+            btnWebHistory.Name = "btnWebHistory";
+            btnWebHistory.Size = new Size(110, 30);
+            btnWebHistory.TabIndex = 9;
+            btnWebHistory.Text = "Веб-история";
+            btnWebHistory.UseVisualStyleBackColor = false;
             // 
             // Form1
             // 
@@ -138,6 +149,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.MenuBar;
             ClientSize = new Size(568, 464);
+            Controls.Add(btnWebHistory);
             Controls.Add(btnHistory);
             Controls.Add(statusStrip);
             Controls.Add(btnUpload);
@@ -151,7 +163,6 @@
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "JPEG Resizer Client";
-            Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)picPreview).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudTargetWidth).EndInit();
             statusStrip.ResumeLayout(false);
@@ -168,7 +179,8 @@
         private System.Windows.Forms.NumericUpDown nudTargetWidth;
         private System.Windows.Forms.Button btnUpload;
         private System.Windows.Forms.StatusStrip statusStrip;
-        private System.Windows.Forms.Button btnHistory;
+        private System.Windows.Forms.Button btnHistory; // кнопка для просмотра истории в приложении
+        private System.Windows.Forms.Button btnWebHistory; // кнопка для просмотра истории на Web-странице
         private ToolStripStatusLabel statusLabel;
     }
 }

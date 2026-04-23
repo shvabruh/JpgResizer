@@ -7,10 +7,6 @@ namespace JpgResizer
     {
         private readonly string _historyUrl;
         private readonly string _getUploadUrl;
-        private DataGridView dgvHistory;
-        private PictureBox picPreview;
-        private Button btnRefresh;
-
 
         public HistoryForm(string historyUrl, string getUploadUrl)
         {
@@ -23,53 +19,6 @@ namespace JpgResizer
         }
 
         private async Task LoadHistoryAsync()
-        { 
-            SetupControls();
-            LoadHistory();
-        }
-
-        private void SetupControls()
-        {
-            this.Text = "История загрузок";
-            this.Size = new Size(900, 600);
-            this.StartPosition = FormStartPosition.CenterParent;
-
-            // DataGridView
-            dgvHistory = new DataGridView
-            {
-                Dock = DockStyle.Top,
-                Height = 300,
-                ReadOnly = true,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
-                AllowUserToAddRows = false
-            };
-            dgvHistory.CellClick += DgvHistory_CellClick;
-
-            // PictureBox
-            picPreview = new PictureBox
-            {
-                Dock = DockStyle.Fill,
-                SizeMode = PictureBoxSizeMode.Zoom,
-                BackColor = Color.LightGray,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-
-            btnRefresh = new Button
-            {
-                Text = "Обновить",
-                Dock = DockStyle.Bottom,
-                Height = 35
-            };
-            btnRefresh.Click += (s, e) => LoadHistory();
-
-            this.Controls.Add(picPreview);
-            this.Controls.Add(dgvHistory);
-            this.Controls.Add(btnRefresh);
-        }
-
-        private async void LoadHistory()
         {
             try
             {
@@ -82,7 +31,7 @@ namespace JpgResizer
                     dgvHistory.DataSource = null;
                     dgvHistory.DataSource = history;
 
-
+                    // Настройка колонок
                     if (dgvHistory.Columns["Id"] != null)
                         dgvHistory.Columns["Id"].Visible = false;
                     if (dgvHistory.Columns["StoredName"] != null)
@@ -111,14 +60,8 @@ namespace JpgResizer
                         dgvHistory.Columns["ErrorMessage"].HeaderText = "Ошибка";
                         dgvHistory.Columns["ErrorMessage"].Width = 200;
                     }
+
                     ApplyStatusColors();
-                    
-                    if (dgvHistory.Columns.Contains("StoredName"))
-                        dgvHistory.Columns["StoredName"].Visible = false;
-                    if (dgvHistory.Columns.Contains("Id"))
-                        dgvHistory.Columns["Id"].Visible = false;
-                    if (dgvHistory.Columns.Contains("ErrorMessage"))
-                        dgvHistory.Columns["ErrorMessage"].Width = 200;
                 }
                 else
                 {
@@ -143,16 +86,16 @@ namespace JpgResizer
                     {
                         statusCell.Style.BackColor = Color.Red;
                         statusCell.Style.ForeColor = Color.White;
-                        // При выделении строки цвет статуса не меняется
-                        statusCell.Style.SelectionBackColor = Color.Red;
+                        // цвет не меняется на базовый, при выделении строки
+                        statusCell.Style.SelectionBackColor = Color.DarkRed;
                         statusCell.Style.SelectionForeColor = Color.White;
                     }
                     else if (status.Equals("success", StringComparison.OrdinalIgnoreCase))
                     {
                         statusCell.Style.BackColor = Color.LightGreen;
                         statusCell.Style.ForeColor = Color.Black;
-                        // При выделении строки цвет статуса не меняется
-                        statusCell.Style.SelectionBackColor = Color.LightGreen;
+                        // цвет не меняется на базовый, при выделении строки
+                        statusCell.Style.SelectionBackColor = Color.Green;
                         statusCell.Style.SelectionForeColor = Color.White;
                     }
                 }
