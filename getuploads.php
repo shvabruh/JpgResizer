@@ -8,7 +8,7 @@ if (!$fileName)
     die('Не указан файл');
 }
 
-// Проверка, что запрашивается именно JPG файл
+// Проверка, что запрашивается именно JPG
 $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 if (!in_array($ext, ['jpg', 'jpeg'])) 
 {

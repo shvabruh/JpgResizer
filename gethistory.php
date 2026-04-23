@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 require_once 'db.php';
 
@@ -7,9 +7,10 @@ $limit = (int)($_GET['limit'] ?? 10);
 if ($limit <= 0) $limit = 10;
 
 $conn = getDbConnection();
-if (!$conn) {
+if (!$conn) 
+{
     http_response_code(500);
-    echo json_encode(['error' => 'БД не доступна']);
+    echo json_encode(['error' => 'БД не доступна'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -36,7 +37,7 @@ $stmt->bind_param("i", $limit);
 $stmt->execute();
 $result = $stmt->get_result();
 $history = $result->fetch_all(MYSQLI_ASSOC);
-echo json_encode($history);
+echo json_encode($history, JSON_UNESCAPED_UNICODE);
 
 $stmt->close();
 $conn->close();
